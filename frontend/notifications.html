@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications – HRMS Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .notif-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 18px 20px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      margin-bottom: 12px;
+      background: white;
+      transition: var(--transition);
+    }
+    .notif-item.unread {
+      background: var(--primary-light);
+      border-color: var(--primary);
+    }
+    .notif-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      background: #e0e7ff;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-body">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Notification Center</h3>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">All status updates, alerts, and approvals</p>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="markAllRead()">Mark All as Read</button>
+          </div>
+
+          <div id="notif-list">
+            <div style="color:var(--text-muted); text-align:center; padding:20px;">Loading notifications...</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    Utils.initLayout('notifications', 'Notifications');
+
+    async function loadNotifications() {
+      try {
+        const res = await API.get('/notifications');
+        const list = document.getElementById('notif-list');
+        if (res && res.data && res.data.length > 0) {
+          list.innerHTML = res.data.map(n => `
+            <div class="notif-item ${n.isRead ? '' : 'unread'}" onclick="markAsRead(${n.id})">
+              <div class="notif-icon">🔔</div>
+              <div style="flex:1;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <h4 style="font-size:0.95rem; font-weight:700;">${n.title}</h4>
+                  <span style="font-size:0.78rem; color:var(--text-muted);">${Utils.formatDateTime(n.createdAt)}</span>
+                </div>
+                <p style="font-size:0.88rem; color:var(--text-muted);">${n.message}</p>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          list.innerHTML = `<div style="color:var(--text-muted); text-align:center; padding:32px 0;">No notifications.</div>`;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function markAsRead(id) {
+      try {
+        await API.patch(`/notifications/${id}/read`);
+        loadNotifications();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function markAllRead() {
+      try {
+        await API.patch('/notifications/read-all');
+        Utils.showToast('All notifications marked as read');
+        loadNotifications();
+      } catch (err) {
+        Utils.showToast(err.message || 'Action failed', 'error');
+      }
+    }
+
+    loadNotifications();
+  </script>
+</body>
+</html>

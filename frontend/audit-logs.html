@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Logs – HRMS Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-body">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Security & Compliance Audit Trail</h3>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Track system logins, record alterations, document uploads, and policy modifications</p>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Action</th>
+                  <th>Module</th>
+                  <th>User / Operator</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody id="audit-tbody">
+                <tr><td colspan="5" style="text-align:center;">Loading audit events...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+            <div style="font-size:0.85rem; color:var(--text-muted);" id="pagination-info">Showing 0 of 0</div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-outline btn-sm" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+              <button class="btn btn-outline btn-sm" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    Utils.initLayout('audit-logs', 'Audit Logs');
+
+    let currentPage = 0;
+    let totalPages = 0;
+
+    async function loadAuditLogs() {
+      try {
+        const res = await API.get('/audit-logs', { page: currentPage, size: 20 });
+        const tbody = document.getElementById('audit-tbody');
+        if (res && res.data) {
+          const { content, totalElements, totalPages: pages, page } = res.data;
+          totalPages = pages;
+          document.getElementById('pagination-info').innerText = `Showing ${content.length} of ${totalElements} events`;
+          document.getElementById('prev-btn').disabled = page === 0;
+          document.getElementById('next-btn').disabled = page >= pages - 1 || pages === 0;
+
+          if (content.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No audit log events recorded yet.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = content.map(a => `
+            <tr>
+              <td style="white-space:nowrap; font-size:0.82rem;">${Utils.formatDateTime(a.createdAt)}</td>
+              <td><span class="badge badge-primary">${a.action}</span></td>
+              <td><span style="font-weight:600; font-size:0.85rem;">${a.module}</span></td>
+              <td>${a.userEmail || 'System'}</td>
+              <td style="color:var(--text-main); font-size:0.88rem;">${a.description || '-'}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function changePage(delta) {
+      currentPage += delta;
+      loadAuditLogs();
+    }
+
+    loadAuditLogs();
+  </script>
+</body>
+</html>
