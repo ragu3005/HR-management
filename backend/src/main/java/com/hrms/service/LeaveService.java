@@ -185,10 +185,31 @@ public class LeaveService {
         leaveRequestRepository.save(req);
     }
 
+    @Transactional
     public List<LeaveDTOs.BalanceResponse> getLeaveBalances(Long userId) {
         Employee emp = employeeService.getEmployeeByUserId(userId);
         int year = LocalDate.now().getYear();
-        return leaveBalanceRepository.findByEmployeeIdAndYear(emp.getId(), year).stream()
+        List<LeaveBalance> balances = leaveBalanceRepository.findByEmployeeIdAndYear(emp.getId(), year);
+
+        if (balances.isEmpty()) {
+            List<LeaveType> leaveTypes = leaveTypeRepository.findAll();
+            for (LeaveType lt : leaveTypes) {
+                if (Boolean.TRUE.equals(lt.getIsActive())) {
+                    LeaveBalance balance = LeaveBalance.builder()
+                        .employee(emp)
+                        .leaveType(lt)
+                        .year(year)
+                        .totalDays(BigDecimal.valueOf(lt.getMaxDaysPerYear() != null ? lt.getMaxDaysPerYear() : 0))
+                        .usedDays(BigDecimal.ZERO)
+                        .pendingDays(BigDecimal.ZERO)
+                        .build();
+                    leaveBalanceRepository.save(balance);
+                }
+            }
+            balances = leaveBalanceRepository.findByEmployeeIdAndYear(emp.getId(), year);
+        }
+
+        return balances.stream()
             .map(b -> LeaveDTOs.BalanceResponse.builder()
                 .leaveTypeId(b.getLeaveType().getId())
                 .leaveTypeName(b.getLeaveType().getName())
@@ -198,6 +219,12 @@ public class LeaveService {
                 .pendingDays(b.getPendingDays())
                 .remainingDays(b.getRemainingDays())
                 .build())
+            .collect(Collectors.toList());
+    }
+
+    public List<LeaveType> getLeaveTypes() {
+        return leaveTypeRepository.findAll().stream()
+            .filter(lt -> Boolean.TRUE.equals(lt.getIsActive()))
             .collect(Collectors.toList());
     }
 

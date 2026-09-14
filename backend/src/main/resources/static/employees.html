@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employees – HRMS Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-body">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Employee Directory & Management</h3>
+            <button class="btn btn-primary" onclick="openAddEmployeeModal()">+ Add New Employee</button>
+          </div>
+
+          <!-- Filters -->
+          <div class="form-row" style="margin-bottom: 20px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <input type="text" id="search-input" class="form-control" placeholder="Search by name, ID, or email..." oninput="debounceSearch()">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <select id="dept-filter" class="form-control" onchange="loadEmployees()">
+                <option value="">All Departments</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <select id="status-filter" class="form-control" onchange="loadEmployees()">
+                <option value="">All Statuses</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="ON_NOTICE">On Notice</option>
+                <option value="TERMINATED">Terminated</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Employee ID</th>
+                  <th>Name</th>
+                  <th>Department</th>
+                  <th>Designation</th>
+                  <th>Official Email</th>
+                  <th>Status</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="employee-table-body">
+                <tr><td colspan="7" style="text-align:center;">Loading employees...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+            <div style="font-size:0.85rem; color:var(--text-muted);" id="pagination-info">Showing 0 of 0</div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-outline btn-sm" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+              <button class="btn btn-outline btn-sm" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Add/Edit Employee Modal -->
+  <div class="modal-backdrop" id="employee-modal">
+    <div class="modal-box" style="max-width:700px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Add New Employee</h3>
+        <button class="close-btn" onclick="Utils.closeModal('employee-modal')">&times;</button>
+      </div>
+      <form id="employee-form">
+        <input type="hidden" id="edit-emp-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">First Name *</label>
+            <input type="text" id="emp-first-name" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name *</label>
+            <input type="text" id="emp-last-name" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Official Email *</label>
+            <input type="email" id="emp-official-email" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Personal Email</label>
+            <input type="email" id="emp-personal-email" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="text" id="emp-phone" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Joining Date *</label>
+            <input type="date" id="emp-joining-date" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Department *</label>
+            <select id="emp-department" class="form-control" required onchange="loadDesignationsForDept(this.value)">
+              <option value="">Select Department</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Designation *</label>
+            <select id="emp-designation" class="form-control" required>
+              <option value="">Select Designation</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Work Location</label>
+            <input type="text" id="emp-location" class="form-control" placeholder="e.g. HQ - Chennai">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Employment Type</label>
+            <select id="emp-type" class="form-control">
+              <option value="FULL_TIME">Full Time</option>
+              <option value="PART_TIME">Part Time</option>
+              <option value="CONTRACT">Contract</option>
+              <option value="INTERN">Intern</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="Utils.closeModal('employee-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="save-emp-btn">Save Employee</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    Utils.initLayout('employees', 'Employee Management');
+
+    let currentPage = 0;
+    let totalPages = 0;
+    let searchTimer = null;
+
+    async function loadDepartments() {
+      try {
+        const res = await API.get('/departments');
+        if (res && res.data) {
+          const filter = document.getElementById('dept-filter');
+          const empDept = document.getElementById('emp-department');
+          const options = res.data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+          filter.innerHTML = `<option value="">All Departments</option>` + options;
+          empDept.innerHTML = `<option value="">Select Department</option>` + options;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadDesignationsForDept(deptId) {
+      try {
+        const res = await API.get('/designations', deptId ? { departmentId: deptId } : {});
+        if (res && res.data) {
+          const empDesig = document.getElementById('emp-designation');
+          empDesig.innerHTML = `<option value="">Select Designation</option>` +
+            res.data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadEmployees() {
+      const search = document.getElementById('search-input').value.trim();
+      const deptId = document.getElementById('dept-filter').value;
+      const status = document.getElementById('status-filter').value;
+
+      try {
+        const res = await API.get('/employees', {
+          search: search || '',
+          departmentId: deptId || '',
+          status: status || '',
+          page: currentPage,
+          size: 10
+        });
+
+        const tbody = document.getElementById('employee-table-body');
+        if (res && res.data) {
+          const { content, totalElements, totalPages: pages, page } = res.data;
+          totalPages = pages;
+          document.getElementById('pagination-info').innerText = `Showing ${content.length} of ${totalElements} employees (Page ${page + 1} of ${Math.max(1, pages)})`;
+          document.getElementById('prev-btn').disabled = page === 0;
+          document.getElementById('next-btn').disabled = page >= pages - 1 || pages === 0;
+
+          if (content.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No employees found.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = content.map(e => `
+            <tr>
+              <td><span style="font-weight:700; color:var(--primary);">${e.employeeId}</span></td>
+              <td>
+                <div style="font-weight:600;">${e.fullName}</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">${e.workLocation || '-'}</div>
+              </td>
+              <td>${e.departmentName || '-'}</td>
+              <td>${e.designationName || '-'}</td>
+              <td>${e.officialEmail}</td>
+              <td>${Utils.getStatusBadge(e.employmentStatus)}</td>
+              <td style="text-align:right;">
+                <a href="employee-profile.html?id=${e.id}" class="btn btn-outline btn-sm">Profile</a>
+                ${e.isActive
+                  ? `<button class="btn btn-danger btn-sm" onclick="toggleActive(${e.id}, false)">Deactivate</button>`
+                  : `<button class="btn btn-success btn-sm" onclick="toggleActive(${e.id}, true)">Activate</button>`
+                }
+              </td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function debounceSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        currentPage = 0;
+        loadEmployees();
+      }, 300);
+    }
+
+    function changePage(delta) {
+      currentPage += delta;
+      loadEmployees();
+    }
+
+    async function toggleActive(id, activate) {
+      try {
+        if (activate) {
+          await API.patch(`/employees/${id}/activate`);
+        } else {
+          await API.patch(`/employees/${id}/deactivate`);
+        }
+        Utils.showToast(`Employee ${activate ? 'activated' : 'deactivated'} successfully`);
+        loadEmployees();
+      } catch (err) {
+        Utils.showToast(err.message || 'Action failed', 'error');
+      }
+    }
+
+    function openAddEmployeeModal() {
+      document.getElementById('employee-form').reset();
+      document.getElementById('edit-emp-id').value = '';
+      document.getElementById('modal-title').innerText = 'Add New Employee';
+      document.getElementById('emp-joining-date').value = new Date().toISOString().split('T')[0];
+      loadDesignationsForDept();
+      Utils.openModal('employee-modal');
+    }
+
+    document.getElementById('employee-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        firstName: document.getElementById('emp-first-name').value.trim(),
+        lastName: document.getElementById('emp-last-name').value.trim(),
+        officialEmail: document.getElementById('emp-official-email').value.trim(),
+        personalEmail: document.getElementById('emp-personal-email').value.trim(),
+        phone: document.getElementById('emp-phone').value.trim(),
+        joiningDate: document.getElementById('emp-joining-date').value,
+        departmentId: document.getElementById('emp-department').value,
+        designationId: document.getElementById('emp-designation').value,
+        workLocation: document.getElementById('emp-location').value.trim(),
+        employmentType: document.getElementById('emp-type').value,
+      };
+
+      try {
+        await API.post('/employees', data);
+        Utils.showToast('Employee created successfully!', 'success');
+        Utils.closeModal('employee-modal');
+        loadEmployees();
+      } catch (err) {
+        Utils.showToast(err.message || 'Failed to save employee', 'error');
+      }
+    });
+
+    loadDepartments();
+    loadEmployees();
+  </script>
+</body>
+</html>

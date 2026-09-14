@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – HRMS Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .attendance-hero {
+      background: linear-gradient(135deg, #1e1b4b, #312e81);
+      color: white;
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+      box-shadow: 0 10px 25px -5px rgba(49, 46, 129, 0.4);
+    }
+    .hero-greeting h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .hero-greeting p {
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+    .punch-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-sm);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .punch-time {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .announcement-item {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .announcement-item:last-child {
+      border-bottom: none;
+    }
+    .announcement-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-body">
+        <!-- Attendance Hero Banner -->
+        <div class="attendance-hero">
+          <div class="hero-greeting">
+            <h2 id="welcome-msg">Welcome Back!</h2>
+            <p id="today-date-text">Loading date...</p>
+          </div>
+
+          <div class="punch-card">
+            <div>
+              <div style="font-size: 0.75rem; text-transform: uppercase; color:#cbd5e1; font-weight:600;">Live Clock</div>
+              <div class="punch-time" id="live-clock">--:--:--</div>
+              <div id="att-status-badge" style="margin-top: 4px;"><span class="badge badge-info">Checking status...</span></div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <button class="btn btn-success" id="btn-check-in" onclick="handleCheckIn()">⚡ Check In</button>
+              <button class="btn btn-danger" id="btn-check-out" onclick="handleCheckOut()" style="display:none;">⚡ Check Out</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- HR Stats Grid (Shown to HR & Super Admin) -->
+        <div id="hr-stats-container" style="display:none;">
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-icon icon-indigo">👥</div>
+              <div class="stat-details">
+                <span class="stat-value" id="stat-total-emp">0</span>
+                <span class="stat-label">Total Employees</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon icon-emerald">✅</div>
+              <div class="stat-details">
+                <span class="stat-value" id="stat-present">0</span>
+                <span class="stat-label">Present Today</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon icon-rose">❌</div>
+              <div class="stat-details">
+                <span class="stat-value" id="stat-absent">0</span>
+                <span class="stat-label">Absent Today</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon icon-amber">⏳</div>
+              <div class="stat-details">
+                <span class="stat-value" id="stat-pending-leaves">0</span>
+                <span class="stat-label">Pending Leaves</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon icon-cyan">🏢</div>
+              <div class="stat-details">
+                <span class="stat-value" id="stat-departments">0</span>
+                <span class="stat-label">Departments</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Employee Leave Balance Grid (Shown to all) -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">My Leave Balances</h3>
+            <a href="leave.html" class="btn btn-outline btn-sm">Apply for Leave</a>
+          </div>
+          <div class="stat-grid" id="leave-balance-grid" style="margin-bottom:0;">
+            <div style="color:var(--text-muted);">Loading balances...</div>
+          </div>
+        </div>
+
+        <!-- Two Columns: Announcements & Upcoming Holidays -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:24px;">
+          <!-- Announcements -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Announcements</h3>
+              <a href="announcements.html" class="btn btn-outline btn-sm">View All</a>
+            </div>
+            <div id="announcement-list">
+              <div style="color:var(--text-muted);">Loading announcements...</div>
+            </div>
+          </div>
+
+          <!-- Upcoming Holidays -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Upcoming Holidays</h3>
+            </div>
+            <div id="holiday-list">
+              <div style="color:var(--text-muted);">Loading holidays...</div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    Utils.initLayout('dashboard', 'Overview Dashboard');
+
+    const currentUser = API.getCurrentUser() || {};
+    document.getElementById('welcome-msg').innerText = `Welcome Back, ${currentUser.fullName || currentUser.username || 'User'}!`;
+    document.getElementById('today-date-text').innerText = new Date().toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // Live clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('live-clock').innerText = now.toLocaleTimeString('en-US');
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Check attendance status
+    async function loadAttendanceStatus() {
+      try {
+        const res = await API.get('/attendance/my-status');
+        if (res && res.data) {
+          const s = res.data;
+          const badgeEl = document.getElementById('att-status-badge');
+          const btnIn = document.getElementById('btn-check-in');
+          const btnOut = document.getElementById('btn-check-out');
+
+          if (!s.checkedIn) {
+            badgeEl.innerHTML = `<span class="badge badge-warning">Not Checked In</span>`;
+            btnIn.style.display = 'inline-flex';
+            btnOut.style.display = 'none';
+          } else if (s.checkedIn && !s.checkedOut) {
+            badgeEl.innerHTML = `<span class="badge badge-success">Punched In (${Utils.formatTime(s.checkInTime)})</span>`;
+            btnIn.style.display = 'none';
+            btnOut.style.display = 'inline-flex';
+          } else {
+            badgeEl.innerHTML = `<span class="badge badge-info">Completed (${s.totalWorkingHours ? s.totalWorkingHours.toFixed(1) : 0} hrs)</span>`;
+            btnIn.style.display = 'none';
+            btnOut.style.display = 'none';
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function handleCheckIn() {
+      try {
+        await API.post('/attendance/check-in', {});
+        Utils.showToast('Checked in successfully!', 'success');
+        loadAttendanceStatus();
+      } catch (err) {
+        Utils.showToast(err.message || 'Check-in failed', 'error');
+      }
+    }
+
+    async function handleCheckOut() {
+      try {
+        await API.post('/attendance/check-out', {});
+        Utils.showToast('Checked out successfully!', 'success');
+        loadAttendanceStatus();
+      } catch (err) {
+        Utils.showToast(err.message || 'Check-out failed', 'error');
+      }
+    }
+
+    // Load HR Stats
+    async function loadHrStats() {
+      if (Auth.hasAnyRole('SUPER_ADMIN', 'HR_ADMIN')) {
+        document.getElementById('hr-stats-container').style.display = 'block';
+        try {
+          const res = await API.get('/reports/dashboard-stats');
+          if (res && res.data) {
+            const d = res.data;
+            document.getElementById('stat-total-emp').innerText = d.totalEmployees;
+            document.getElementById('stat-present').innerText = d.presentToday;
+            document.getElementById('stat-absent').innerText = d.absentToday;
+            document.getElementById('stat-pending-leaves').innerText = d.pendingLeaveRequests;
+            document.getElementById('stat-departments').innerText = d.totalDepartments;
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }
+
+    // Load Leave Balances
+    async function loadLeaveBalances() {
+      try {
+        const res = await API.get('/leaves/balances');
+        const container = document.getElementById('leave-balance-grid');
+        if (res && res.data && res.data.length > 0) {
+          container.innerHTML = res.data.map(b => `
+            <div class="stat-card">
+              <div class="stat-icon icon-cyan">🌴</div>
+              <div class="stat-details">
+                <span class="stat-value">${b.remainingDays} / ${b.totalDays}</span>
+                <span class="stat-label">${b.leaveTypeName} Available</span>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = `<div style="color:var(--text-muted);">No leave balance records found.</div>`;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Load Announcements
+    async function loadAnnouncements() {
+      try {
+        const res = await API.get('/announcements');
+        const list = document.getElementById('announcement-list');
+        if (res && res.data && res.data.length > 0) {
+          list.innerHTML = res.data.slice(0, 3).map(a => `
+            <div class="announcement-item">
+              <div class="announcement-meta">
+                <span class="badge badge-primary">${a.priority}</span>
+                <span style="font-size:0.8rem; color:var(--text-muted);">${Utils.formatDate(a.publishedAt || a.createdAt)}</span>
+              </div>
+              <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:4px;">${a.title}</h4>
+              <p style="font-size:0.85rem; color:var(--text-muted);">${a.content}</p>
+            </div>
+          `).join('');
+        } else {
+          list.innerHTML = `<div style="color:var(--text-muted);">No active announcements.</div>`;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Load Holidays
+    async function loadHolidays() {
+      try {
+        const res = await API.get('/holidays');
+        const list = document.getElementById('holiday-list');
+        if (res && res.data && res.data.length > 0) {
+          list.innerHTML = res.data.slice(0, 4).map(h => `
+            <div class="announcement-item" style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <h4 style="font-size:0.92rem; font-weight:600;">${h.name}</h4>
+                <span style="font-size:0.8rem; color:var(--text-muted);">${h.type} Holiday</span>
+              </div>
+              <span class="badge badge-info">${Utils.formatDate(h.holidayDate)}</span>
+            </div>
+          `).join('');
+        } else {
+          list.innerHTML = `<div style="color:var(--text-muted);">No holidays listed.</div>`;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadAttendanceStatus();
+    loadHrStats();
+    loadLeaveBalances();
+    loadAnnouncements();
+    loadHolidays();
+  </script>
+</body>
+</html>

@@ -23,6 +23,10 @@ public class AttendanceService {
     private final OrganizationRepository orgRepository;
     private final AuditLogService auditLogService;
 
+    public EmployeeService getEmployeeService() {
+        return employeeService;
+    }
+
     @Transactional
     public Attendance checkIn(Long userId, String ipAddress) {
         Employee emp = employeeService.getEmployeeByUserId(userId);
@@ -33,8 +37,8 @@ public class AttendanceService {
         }
 
         Organization org = orgRepository.findFirstByOrderByIdAsc().orElse(null);
-        LocalTime workStart = org != null ? LocalTime.parse(org.getWorkStartTime()) : LocalTime.of(9, 0);
-        LocalTime workStartWithGrace = workStart.plusMinutes(org != null ? org.getLateCheckInMins() : 15);
+        LocalTime workStart = org != null ? parseTimeSafely(org.getWorkStartTime(), LocalTime.of(9, 0)) : LocalTime.of(9, 0);
+        LocalTime workStartWithGrace = workStart.plusMinutes(org != null && org.getLateCheckInMins() != null ? org.getLateCheckInMins() : 15);
         LocalDateTime now = LocalDateTime.now();
         LocalTime currentTime = now.toLocalTime();
 
@@ -137,5 +141,17 @@ public class AttendanceService {
             .notes(a.getNotes())
             .createdAt(a.getCreatedAt())
             .build();
+    }
+
+    private LocalTime parseTimeSafely(String timeStr, LocalTime defaultTime) {
+        if (timeStr == null || timeStr.isBlank()) return defaultTime;
+        try {
+            timeStr = timeStr.trim();
+            if (timeStr.length() == 5) return LocalTime.parse(timeStr);
+            if (timeStr.length() >= 8) return LocalTime.parse(timeStr.substring(0, 8));
+            return LocalTime.parse(timeStr);
+        } catch (Exception e) {
+            return defaultTime;
+        }
     }
 }

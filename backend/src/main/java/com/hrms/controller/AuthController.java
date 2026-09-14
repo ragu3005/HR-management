@@ -31,6 +31,32 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/register")
+    public ResponseEntity<CommonDTOs.ApiResponse<AuthDTOs.LoginResponse>> register(
+            @RequestBody AuthDTOs.RegisterRequest request,
+            HttpServletRequest httpRequest) {
+        try {
+            String ip = getClientIp(httpRequest);
+            AuthDTOs.LoginResponse response = authService.register(request, ip);
+            return ResponseEntity.ok(CommonDTOs.ApiResponse.success("Registration successful", response));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .body(CommonDTOs.ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/registration-options")
+    public ResponseEntity<CommonDTOs.ApiResponse<AuthDTOs.RegistrationOptionsResponse>> getRegistrationOptions() {
+        try {
+            AuthDTOs.RegistrationOptionsResponse response = authService.getRegistrationOptions();
+            return ResponseEntity.ok(CommonDTOs.ApiResponse.success(response));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .body(CommonDTOs.ApiResponse.error(e.getMessage()));
+        }
+    }
+
+
     @PostMapping("/logout")
     public ResponseEntity<CommonDTOs.ApiResponse<Void>> logout() {
         // JWT is stateless – logout is handled client-side by deleting the token

@@ -121,6 +121,15 @@ public class DocumentService {
         return documentRepository.findByEmployeeId(employeeId);
     }
 
+    public List<EmployeeDocument> getAllDocuments() {
+        return documentRepository.findAll();
+    }
+
+    public List<EmployeeDocument> getMyDocuments(Long userId) {
+        Employee emp = employeeService.getEmployeeByUserId(userId);
+        return documentRepository.findByEmployeeId(emp.getId());
+    }
+
     public EmployeeDocument getDocument(Long id) {
         return documentRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Document not found"));

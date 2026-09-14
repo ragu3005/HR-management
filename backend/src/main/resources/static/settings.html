@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings – HRMS Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-body">
+        <div class="card" style="max-width:800px;">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Organization Settings & Policies</h3>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Configure enterprise parameters, work shifts, and grace periods</p>
+            </div>
+          </div>
+
+          <form id="org-settings-form">
+            <div class="form-group">
+              <label class="form-label">Organization Name *</label>
+              <input type="text" id="org-name" class="form-control" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Official Contact Email</label>
+                <input type="email" id="org-email" class="form-control">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Phone Number</label>
+                <input type="text" id="org-phone" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Headquarters Address</label>
+              <textarea id="org-address" class="form-control" rows="2"></textarea>
+            </div>
+
+            <h4 style="font-size:1.05rem; font-weight:700; margin:24px 0 14px;">Work Hours & Attendance Rules</h4>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Work Shift Start Time</label>
+                <input type="time" id="org-start-time" class="form-control" value="09:00" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Work Shift End Time</label>
+                <input type="time" id="org-end-time" class="form-control" value="18:00" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Late Check-In Grace Period (Minutes)</label>
+                <input type="number" id="org-late-grace" class="form-control" min="0" max="120" value="15" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Overtime Trigger (Daily Working Minutes)</label>
+                <input type="number" id="org-overtime-threshold" class="form-control" min="240" max="720" value="480" required>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:24px;">
+              <button type="submit" class="btn btn-primary" id="save-settings-btn">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    Utils.initLayout('settings', 'Organization Settings');
+
+    async function loadOrgSettings() {
+      try {
+        const res = await API.get('/organization');
+        if (res && res.data) {
+          const org = res.data;
+          document.getElementById('org-name').value = org.name || '';
+          document.getElementById('org-email').value = org.email || '';
+          document.getElementById('org-phone').value = org.phone || '';
+          document.getElementById('org-address').value = org.address || '';
+          document.getElementById('org-start-time').value = (org.workStartTime || '09:00:00').substring(0, 5);
+          document.getElementById('org-end-time').value = (org.workEndTime || '18:00:00').substring(0, 5);
+          document.getElementById('org-late-grace').value = org.lateCheckInMins || 15;
+          document.getElementById('org-overtime-threshold').value = org.overtimeThresholdMins || 480;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    document.getElementById('org-settings-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        name: document.getElementById('org-name').value.trim(),
+        email: document.getElementById('org-email').value.trim(),
+        phone: document.getElementById('org-phone').value.trim(),
+        address: document.getElementById('org-address').value.trim(),
+        workStartTime: document.getElementById('org-start-time').value + ':00',
+        workEndTime: document.getElementById('org-end-time').value + ':00',
+        lateCheckInMins: parseInt(document.getElementById('org-late-grace').value),
+        overtimeThresholdMins: parseInt(document.getElementById('org-overtime-threshold').value)
+      };
+
+      try {
+        const btn = document.getElementById('save-settings-btn');
+        btn.disabled = true;
+        btn.innerText = 'Saving...';
+        await API.put('/organization', data);
+        Utils.showToast('Organization settings updated successfully!');
+        btn.disabled = false;
+        btn.innerText = 'Save Changes';
+      } catch (err) {
+        Utils.showToast(err.message || 'Save failed', 'error');
+        document.getElementById('save-settings-btn').disabled = false;
+      }
+    });
+
+    loadOrgSettings();
+  </script>
+</body>
+</html>

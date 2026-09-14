@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Directory – HRMS Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .directory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+      margin-top: 24px;
+    }
+    .directory-card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .directory-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-focus);
+    }
+    .dir-avatar {
+      width: 68px;
+      height: 68px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      font-size: 1.6rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .dir-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+    .dir-designation {
+      font-size: 0.85rem;
+      color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .dir-dept {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .dir-code {
+      font-size: 0.75rem;
+      background: var(--bg-main);
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-body">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Employee Directory</h3>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Discover and connect with your colleagues</p>
+            </div>
+            <span class="badge badge-primary" id="active-count-badge">Active Employees: --</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0;">
+              <input type="text" id="dir-search" class="form-control" placeholder="Search by name or email..." oninput="debounceDirSearch()">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <select id="dir-dept-filter" class="form-control" onchange="loadDirectory()">
+                <option value="">All Departments</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="directory-grid" id="directory-container">
+            <div style="color:var(--text-muted); grid-column:1/-1; text-align:center;">Loading directory...</div>
+          </div>
+
+          <!-- Pagination -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:28px;">
+            <div style="font-size:0.85rem; color:var(--text-muted);" id="pagination-info">Showing 0 of 0</div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-outline btn-sm" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+              <button class="btn btn-outline btn-sm" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Public Profile Modal (Hides Sensitive Information) -->
+  <div class="modal-backdrop" id="public-profile-modal">
+    <div class="modal-box" style="max-width:520px; text-align:center;">
+      <div style="display:flex; justify-content:flex-end;">
+        <button class="close-btn" onclick="Utils.closeModal('public-profile-modal')">&times;</button>
+      </div>
+      <div class="dir-avatar" id="modal-avatar" style="margin: 0 auto 16px; width:80px; height:80px; font-size:2rem;">U</div>
+      <h3 style="font-size:1.4rem; font-weight:800;" id="modal-name">Employee Name</h3>
+      <div style="color:var(--primary); font-weight:600; font-size:0.95rem; margin-top:2px;" id="modal-desig">Designation</div>
+      <div style="color:var(--text-muted); font-size:0.85rem;" id="modal-dept">Department</div>
+
+      <div style="background:var(--bg-main); border-radius:var(--radius-sm); padding:16px; margin:20px 0; text-align:left; font-size:0.9rem;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div><strong style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase;">Employee ID</strong><br><span id="modal-id">-</span></div>
+          <div><strong style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase;">Location</strong><br><span id="modal-location">-</span></div>
+          <div style="grid-column:1/-1;"><strong style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase;">Reporting Manager</strong><br><span id="modal-manager">-</span></div>
+        </div>
+        <div style="margin-top:14px;">
+          <strong style="color:var(--text-muted); font-size:0.75rem; text-transform:uppercase;">About / Bio</strong>
+          <p style="color:var(--text-main); font-size:0.88rem; margin-top:4px;" id="modal-bio">No bio provided.</p>
+        </div>
+      </div>
+
+      <button class="btn btn-outline" style="width:100%;" onclick="Utils.closeModal('public-profile-modal')">Close Profile</button>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    Utils.initLayout('directory', 'Employee Directory');
+
+    let currentPage = 0;
+    let totalPages = 0;
+    let searchTimer = null;
+
+    async function loadDepartments() {
+      try {
+        const res = await API.get('/departments');
+        if (res && res.data) {
+          const filter = document.getElementById('dir-dept-filter');
+          filter.innerHTML = `<option value="">All Departments</option>` +
+            res.data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadDirectory() {
+      const search = document.getElementById('dir-search').value.trim();
+      const deptId = document.getElementById('dir-dept-filter').value;
+
+      try {
+        const res = await API.get('/directory', {
+          search: search || '',
+          departmentId: deptId || '',
+          page: currentPage,
+          size: 12
+        });
+
+        const container = document.getElementById('directory-container');
+        if (res && res.data) {
+          const { content, totalElements, totalPages: pages, page } = res.data;
+          totalPages = pages;
+          document.getElementById('active-count-badge').innerText = `Active Employees: ${totalElements}`;
+          document.getElementById('pagination-info').innerText = `Showing ${content.length} of ${totalElements} employees`;
+          document.getElementById('prev-btn').disabled = page === 0;
+          document.getElementById('next-btn').disabled = page >= pages - 1 || pages === 0;
+
+          if (content.length === 0) {
+            container.innerHTML = `<div style="color:var(--text-muted); grid-column:1/-1; text-align:center;">No employees found matching criteria.</div>`;
+            return;
+          }
+
+          container.innerHTML = content.map(e => `
+            <div class="directory-card" onclick="openPublicProfile(${e.id})">
+              <div class="dir-avatar">${(e.fullName || 'U').charAt(0).toUpperCase()}</div>
+              <div class="dir-name">${e.fullName}</div>
+              <div class="dir-designation">${e.designationName || 'Team Member'}</div>
+              <div class="dir-dept">${e.departmentName || 'General'}</div>
+              <span class="dir-code">${e.employeeId}</span>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function openPublicProfile(id) {
+      try {
+        const res = await API.get(`/directory/${id}`);
+        if (res && res.data) {
+          const p = res.data;
+          document.getElementById('modal-avatar').innerText = (p.fullName || 'U').charAt(0).toUpperCase();
+          document.getElementById('modal-name').innerText = p.fullName;
+          document.getElementById('modal-desig').innerText = p.designationName || 'Designation';
+          document.getElementById('modal-dept').innerText = p.departmentName || 'Department';
+          document.getElementById('modal-id').innerText = p.employeeId;
+          document.getElementById('modal-location').innerText = p.workLocation || 'HQ';
+          document.getElementById('modal-manager').innerText = p.reportingManagerName || 'None';
+          document.getElementById('modal-bio').innerText = p.professionalBio || 'No bio provided.';
+          Utils.openModal('public-profile-modal');
+        }
+      } catch (err) {
+        Utils.showToast('Failed to load profile', 'error');
+      }
+    }
+
+    function debounceDirSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        currentPage = 0;
+        loadDirectory();
+      }, 300);
+    }
+
+    function changePage(delta) {
+      currentPage += delta;
+      loadDirectory();
+    }
+
+    loadDepartments();
+    loadDirectory();
+  </script>
+</body>
+</html>

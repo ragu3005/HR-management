@@ -65,8 +65,13 @@ public class LeaveController {
         }
     }
 
-    @GetMapping
-    @PreAuthorize("hasAuthority('leave:read_all')")
+    @GetMapping("/types")
+    public ResponseEntity<CommonDTOs.ApiResponse<List<com.hrms.model.LeaveType>>> getLeaveTypes() {
+        return ResponseEntity.ok(CommonDTOs.ApiResponse.success(leaveService.getLeaveTypes()));
+    }
+
+    @GetMapping({"", "/all"})
+    @PreAuthorize("hasAuthority('leave:read_all') or hasAuthority('leave:approve_hr') or hasAuthority('leave:approve_manager')")
     public ResponseEntity<CommonDTOs.ApiResponse<CommonDTOs.PageResponse<LeaveDTOs.Response>>> getAllLeaves(
             @RequestParam(required = false) Long employeeId,
             @RequestParam(required = false) String status,

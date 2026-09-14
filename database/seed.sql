@@ -160,10 +160,10 @@ INSERT INTO designations (name, department_id, is_active) VALUES
 -- Admin@123
 -- ============================================================
 INSERT INTO users (username, email, password, is_active) VALUES
-('superadmin',  'admin@hrms.com',    '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIom', TRUE),
-('hradmin',     'hr@hrms.com',       '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIom', TRUE),
-('jsmith',      'manager@hrms.com',  '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIom', TRUE),
-('alee',        'employee@hrms.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIom', TRUE);
+('superadmin',  'admin@hrms.com',    '$2a$10$mtmHTiTjbW/bAmFJ0yBEmOm7W0pM9cF7pKi0arleZqrB6gmauV0/e', TRUE),
+('hradmin',     'hr@hrms.com',       '$2a$10$mtmHTiTjbW/bAmFJ0yBEmOm7W0pM9cF7pKi0arleZqrB6gmauV0/e', TRUE),
+('jsmith',      'manager@hrms.com',  '$2a$10$mtmHTiTjbW/bAmFJ0yBEmOm7W0pM9cF7pKi0arleZqrB6gmauV0/e', TRUE),
+('alee',        'employee@hrms.com', '$2a$10$mtmHTiTjbW/bAmFJ0yBEmOm7W0pM9cF7pKi0arleZqrB6gmauV0/e', TRUE);
 
 -- user_roles
 INSERT INTO user_roles (user_id, role_id) VALUES (1, 1), (2, 2), (3, 3), (4, 4);

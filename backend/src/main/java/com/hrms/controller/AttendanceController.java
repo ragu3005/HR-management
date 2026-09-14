@@ -55,7 +55,7 @@ public class AttendanceController {
         }
     }
 
-    @GetMapping("/my-status")
+    @GetMapping({"/my-status", "/today"})
     public ResponseEntity<CommonDTOs.ApiResponse<AttendanceDTOs.TodayStatus>> getTodayStatus(
             @AuthenticationPrincipal UserPrincipal principal) {
         try {
@@ -65,8 +65,8 @@ public class AttendanceController {
         }
     }
 
-    @GetMapping
-    @PreAuthorize("hasAuthority('attendance:read_all')")
+    @GetMapping({"", "/all", "/my"})
+    @PreAuthorize("hasAuthority('attendance:read_own') or hasAuthority('attendance:read_all')")
     public ResponseEntity<CommonDTOs.ApiResponse<CommonDTOs.PageResponse<AttendanceDTOs.Response>>> getAttendanceRecords(
             @RequestParam(required = false) Long employeeId,
             @RequestParam(required = false) Long departmentId,
@@ -74,7 +74,24 @@ public class AttendanceController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "15") int size) {
+            @RequestParam(defaultValue = "15") int size,
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        boolean hasReadAll = principal.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("attendance:read_all") ||
+                               a.getAuthority().equals("ROLE_SUPER_ADMIN") ||
+                               a.getAuthority().equals("ROLE_HR_ADMIN") ||
+                               a.getAuthority().equals("ROLE_MANAGER"));
+
+        Long targetEmployeeId = employeeId;
+        if (!hasReadAll || (targetEmployeeId == null && principal.hasRole("EMPLOYEE"))) {
+            try {
+                var emp = attendanceService.getEmployeeService().getEmployeeByUserId(principal.getId());
+                if (emp != null && !hasReadAll) {
+                    targetEmployeeId = emp.getId();
+                }
+            } catch (Exception ignored) {}
+        }
 
         Attendance.AttendanceStatus attStatus = null;
         if (status != null && !status.isBlank()) {
@@ -82,7 +99,7 @@ public class AttendanceController {
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("attendanceDate").descending());
-        Page<Attendance> result = attendanceService.searchAttendance(employeeId, departmentId, startDate, endDate, attStatus, pageable);
+        Page<Attendance> result = attendanceService.searchAttendance(targetEmployeeId, departmentId, startDate, endDate, attStatus, pageable);
 
         CommonDTOs.PageResponse<AttendanceDTOs.Response> pageResponse = CommonDTOs.PageResponse.<AttendanceDTOs.Response>builder()
                 .content(result.getContent().stream().map(attendanceService::toResponse).collect(Collectors.toList()))
@@ -94,6 +111,12 @@ public class AttendanceController {
                 .build();
 
         return ResponseEntity.ok(CommonDTOs.ApiResponse.success(pageResponse));
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<CommonDTOs.ApiResponse<AttendanceDTOs.TodayStatus>> getAttendanceStats(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return getTodayStatus(principal);
     }
 
     private String getClientIp(HttpServletRequest request) {

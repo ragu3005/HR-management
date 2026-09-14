@@ -9,7 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/organization")
+@RequestMapping({"/api/organization", "/api/organizations"})
 @RequiredArgsConstructor
 public class OrganizationController {
 

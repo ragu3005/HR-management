@@ -48,6 +48,29 @@ public class DocumentController {
         }
     }
 
+    @GetMapping({"", "/all"})
+    @PreAuthorize("hasAuthority('document:read_all') or hasRole('SUPER_ADMIN') or hasRole('HR_ADMIN')")
+    public ResponseEntity<CommonDTOs.ApiResponse<List<CommonDTOs.DocumentDTO>>> getAllDocuments() {
+        List<CommonDTOs.DocumentDTO> docs = documentService.getAllDocuments().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(CommonDTOs.ApiResponse.success(docs));
+    }
+
+    @GetMapping("/my")
+    @PreAuthorize("hasAuthority('document:read_own')")
+    public ResponseEntity<CommonDTOs.ApiResponse<List<CommonDTOs.DocumentDTO>>> getMyDocuments(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        try {
+            List<CommonDTOs.DocumentDTO> docs = documentService.getMyDocuments(principal.getId()).stream()
+                    .map(this::toDto)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(CommonDTOs.ApiResponse.success(docs));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(CommonDTOs.ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @GetMapping("/employee/{employeeId}")
     @PreAuthorize("hasAuthority('document:read_own') or hasAuthority('document:read_all')")
     public ResponseEntity<CommonDTOs.ApiResponse<List<CommonDTOs.DocumentDTO>>> getEmployeeDocuments(

@@ -94,4 +94,55 @@ public class ReportController {
 
         return ResponseEntity.ok(CommonDTOs.ApiResponse.success(trends));
     }
+
+    @GetMapping({"/headcount", "/headcount-summary"})
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('HR_ADMIN')")
+    public ResponseEntity<CommonDTOs.ApiResponse<Map<String, Object>>> getHeadcountSummary() {
+        long total = employeeRepository.count();
+        long active = employeeRepository.countByEmploymentStatus(Employee.EmploymentStatus.ACTIVE);
+        long inactive = employeeRepository.countByEmploymentStatus(Employee.EmploymentStatus.INACTIVE);
+        long onNotice = employeeRepository.countByEmploymentStatus(Employee.EmploymentStatus.ON_NOTICE);
+        long terminated = employeeRepository.countByEmploymentStatus(Employee.EmploymentStatus.TERMINATED);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("total", total);
+        data.put("active", active);
+        data.put("inactive", inactive);
+        data.put("onNotice", onNotice);
+        data.put("terminated", terminated);
+        return ResponseEntity.ok(CommonDTOs.ApiResponse.success(data));
+    }
+
+    @GetMapping("/attendance-summary")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('HR_ADMIN')")
+    public ResponseEntity<CommonDTOs.ApiResponse<Map<String, Object>>> getAttendanceSummary() {
+        LocalDate today = LocalDate.now();
+        long present = attendanceRepository.countPresentByDate(today);
+        long onLeave = attendanceRepository.countOnLeaveByDate(today);
+        long active = employeeRepository.countByEmploymentStatus(Employee.EmploymentStatus.ACTIVE);
+        long absent = Math.max(0, active - present - onLeave);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("presentToday", present);
+        data.put("onLeaveToday", onLeave);
+        data.put("absentToday", absent);
+        data.put("totalActive", active);
+        return ResponseEntity.ok(CommonDTOs.ApiResponse.success(data));
+    }
+
+    @GetMapping("/leave-summary")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('HR_ADMIN')")
+    public ResponseEntity<CommonDTOs.ApiResponse<Map<String, Object>>> getLeaveSummary() {
+        long pending = leaveRequestRepository.countByStatus(LeaveRequest.LeaveStatus.PENDING);
+        long managerApproved = leaveRequestRepository.countByStatus(LeaveRequest.LeaveStatus.MANAGER_APPROVED);
+        long approved = leaveRequestRepository.countByStatus(LeaveRequest.LeaveStatus.APPROVED);
+        long rejected = leaveRequestRepository.countByStatus(LeaveRequest.LeaveStatus.REJECTED);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("pending", pending);
+        data.put("managerApproved", managerApproved);
+        data.put("approved", approved);
+        data.put("rejected", rejected);
+        return ResponseEntity.ok(CommonDTOs.ApiResponse.success(data));
+    }
 }

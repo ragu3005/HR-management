@@ -43,7 +43,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<CommonDTOs.ApiResponse<Void>> handleGeneralException(Exception ex) {
         log.error("Internal server error: ", ex);
+        String msg = (ex.getMessage() != null && !ex.getMessage().isBlank())
+            ? ex.getMessage()
+            : "An unexpected error occurred. Please contact administrator.";
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(CommonDTOs.ApiResponse.error("An unexpected error occurred. Please contact administrator."));
+                .body(CommonDTOs.ApiResponse.error(msg));
     }
 }
+

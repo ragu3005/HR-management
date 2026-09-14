@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 public class DirectoryController {
 
     private final EmployeeService employeeService;
+    private final com.hrms.repository.EmployeeRepository employeeRepository;
 
     @GetMapping
     public ResponseEntity<CommonDTOs.ApiResponse<CommonDTOs.PageResponse<EmployeeDTOs.DirectoryCard>>> getDirectory(
@@ -48,12 +49,15 @@ public class DirectoryController {
     public ResponseEntity<CommonDTOs.ApiResponse<EmployeeDTOs.PublicProfile>> getPublicProfile(
             @PathVariable String employeeId) {
         try {
-            Long id = Long.parseLong(employeeId);
-            Employee emp = employeeService.getById(id);
+            Employee emp = null;
+            try {
+                Long id = Long.parseLong(employeeId);
+                emp = employeeService.getById(id);
+            } catch (NumberFormatException e) {
+                emp = employeeRepository.findByEmployeeId(employeeId)
+                        .orElseThrow(() -> new RuntimeException("Employee not found"));
+            }
             return ResponseEntity.ok(CommonDTOs.ApiResponse.success(employeeService.toPublicProfile(emp)));
-        } catch (NumberFormatException e) {
-            // Check if string code e.g. EMP001
-            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }

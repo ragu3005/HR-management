@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Departments – HRMS Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-body">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Departments</h3>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Manage organizational departments and team heads</p>
+            </div>
+            <button class="btn btn-primary" onclick="openAddDeptModal()">+ Add Department</button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Department Name</th>
+                  <th>Department Manager</th>
+                  <th>Total Members</th>
+                  <th>Status</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="dept-table-body">
+                <tr><td colspan="6" style="text-align:center;">Loading departments...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Add/Edit Department Modal -->
+  <div class="modal-backdrop" id="dept-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="dept-modal-title">Add Department</h3>
+        <button class="close-btn" onclick="Utils.closeModal('dept-modal')">&times;</button>
+      </div>
+      <form id="dept-form">
+        <input type="hidden" id="edit-dept-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Department Code *</label>
+            <input type="text" id="dept-code" class="form-control" placeholder="e.g. ENG" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department Name *</label>
+            <input type="text" id="dept-name" class="form-control" placeholder="e.g. Engineering" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea id="dept-desc" class="form-control" rows="2" placeholder="Brief description..."></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px;">
+          <button type="button" class="btn btn-outline" onclick="Utils.closeModal('dept-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Department</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    Utils.initLayout('departments', 'Department Management');
+
+    async function loadDepartments() {
+      try {
+        const res = await API.get('/departments');
+        const tbody = document.getElementById('dept-table-body');
+        if (res && res.data && res.data.length > 0) {
+          tbody.innerHTML = res.data.map(d => `
+            <tr>
+              <td><span style="font-weight:700; color:var(--primary);">${d.deptCode}</span></td>
+              <td><strong>${d.name}</strong><br><span style="font-size:0.8rem; color:var(--text-muted);">${d.description || ''}</span></td>
+              <td>${d.managerName || 'Not Assigned'}</td>
+              <td><span class="badge badge-primary">${d.employeeCount} Members</span></td>
+              <td>${d.isActive ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'}</td>
+              <td style="text-align:right;">
+                <button class="btn btn-outline btn-sm" onclick="editDept(${JSON.stringify(d).replace(/"/g, '&quot;')})">Edit</button>
+                ${d.isActive ? `<button class="btn btn-danger btn-sm" onclick="deactivateDept(${d.id})">Deactivate</button>` : ''}
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No departments found.</td></tr>`;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function openAddDeptModal() {
+      document.getElementById('dept-form').reset();
+      document.getElementById('edit-dept-id').value = '';
+      document.getElementById('dept-modal-title').innerText = 'Add Department';
+      document.getElementById('dept-code').disabled = false;
+      Utils.openModal('dept-modal');
+    }
+
+    function editDept(d) {
+      document.getElementById('edit-dept-id').value = d.id;
+      document.getElementById('dept-code').value = d.deptCode;
+      document.getElementById('dept-code').disabled = true;
+      document.getElementById('dept-name').value = d.name;
+      document.getElementById('dept-desc').value = d.description || '';
+      document.getElementById('dept-modal-title').innerText = 'Edit Department';
+      Utils.openModal('dept-modal');
+    }
+
+    async function deactivateDept(id) {
+      if (!confirm('Are you sure you want to deactivate this department?')) return;
+      try {
+        await API.delete(`/departments/${id}`);
+        Utils.showToast('Department deactivated');
+        loadDepartments();
+      } catch (err) {
+        Utils.showToast(err.message || 'Deactivation failed', 'error');
+      }
+    }
+
+    document.getElementById('dept-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('edit-dept-id').value;
+      const data = {
+        deptCode: document.getElementById('dept-code').value.trim(),
+        name: document.getElementById('dept-name').value.trim(),
+        description: document.getElementById('dept-desc').value.trim()
+      };
+
+      try {
+        if (id) {
+          await API.put(`/departments/${id}`, data);
+          Utils.showToast('Department updated successfully');
+        } else {
+          await API.post('/departments', data);
+          Utils.showToast('Department created successfully');
+        }
+        Utils.closeModal('dept-modal');
+        loadDepartments();
+      } catch (err) {
+        Utils.showToast(err.message || 'Action failed', 'error');
+      }
+    });
+
+    loadDepartments();
+  </script>
+</body>
+</html>

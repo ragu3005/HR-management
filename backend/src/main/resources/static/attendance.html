@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance – HRMS Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-body">
+        <!-- Punch Card Widget -->
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+          <div>
+            <h3 class="card-title">Today's Attendance Status</h3>
+            <p id="att-summary-text" style="color:var(--text-muted); font-size:0.9rem; margin-top:2px;">Checking your punch status...</p>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <button class="btn btn-success" id="btn-punch-in" onclick="punchIn()">Check In</button>
+            <button class="btn btn-danger" id="btn-punch-out" onclick="punchOut()" style="display:none;">Check Out</button>
+          </div>
+        </div>
+
+        <!-- Attendance Logs Table -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Attendance Records & History</h3>
+          </div>
+
+          <!-- Filters -->
+          <div class="form-row" style="margin-bottom: 20px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Start Date</label>
+              <input type="date" id="start-date-filter" class="form-control" onchange="loadAttendance()">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">End Date</label>
+              <input type="date" id="end-date-filter" class="form-control" onchange="loadAttendance()">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Status</label>
+              <select id="status-filter" class="form-control" onchange="loadAttendance()">
+                <option value="">All Statuses</option>
+                <option value="PRESENT">Present</option>
+                <option value="LATE">Late</option>
+                <option value="HALF_DAY">Half Day</option>
+                <option value="ON_LEAVE">On Leave</option>
+                <option value="ABSENT">Absent</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Date</th>
+                  <th>Check In</th>
+                  <th>Check Out</th>
+                  <th>Total Hours</th>
+                  <th>Overtime</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="att-table-body">
+                <tr><td colspan="7" style="text-align:center;">Loading attendance logs...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+            <div style="font-size:0.85rem; color:var(--text-muted);" id="pagination-info">Showing 0 of 0</div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-outline btn-sm" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+              <button class="btn btn-outline btn-sm" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    Utils.initLayout('attendance', 'Attendance Management');
+
+    let currentPage = 0;
+    let totalPages = 0;
+
+    async function loadStatus() {
+      try {
+        const res = await API.get('/attendance/my-status');
+        if (res && res.data) {
+          const s = res.data;
+          const text = document.getElementById('att-summary-text');
+          const btnIn = document.getElementById('btn-punch-in');
+          const btnOut = document.getElementById('btn-punch-out');
+
+          if (!s.checkedIn) {
+            text.innerHTML = `Not punched in today. Click Check In when you begin work.`;
+            btnIn.style.display = 'inline-flex';
+            btnOut.style.display = 'none';
+          } else if (s.checkedIn && !s.checkedOut) {
+            text.innerHTML = `Checked In at <strong>${Utils.formatTime(s.checkInTime)}</strong> (Status: ${Utils.getStatusBadge(s.status)})`;
+            btnIn.style.display = 'none';
+            btnOut.style.display = 'inline-flex';
+          } else {
+            text.innerHTML = `Day complete! Checked out at <strong>${Utils.formatTime(s.checkOutTime)}</strong> (Total: ${s.totalWorkingHours ? s.totalWorkingHours.toFixed(1) : 0} hrs)`;
+            btnIn.style.display = 'none';
+            btnOut.style.display = 'none';
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function punchIn() {
+      try {
+        await API.post('/attendance/check-in', {});
+        Utils.showToast('Punch in recorded!', 'success');
+        loadStatus();
+        loadAttendance();
+      } catch (err) {
+        Utils.showToast(err.message || 'Check-in failed', 'error');
+      }
+    }
+
+    async function punchOut() {
+      try {
+        await API.post('/attendance/check-out', {});
+        Utils.showToast('Punch out recorded!', 'success');
+        loadStatus();
+        loadAttendance();
+      } catch (err) {
+        Utils.showToast(err.message || 'Check-out failed', 'error');
+      }
+    }
+
+    async function loadAttendance() {
+      const startDate = document.getElementById('start-date-filter').value;
+      const endDate = document.getElementById('end-date-filter').value;
+      const status = document.getElementById('status-filter').value;
+
+      try {
+        const res = await API.get('/attendance', {
+          startDate: startDate || '',
+          endDate: endDate || '',
+          status: status || '',
+          page: currentPage,
+          size: 15
+        });
+
+        const tbody = document.getElementById('att-table-body');
+        if (res && res.data) {
+          const { content, totalElements, totalPages: pages, page } = res.data;
+          totalPages = pages;
+          document.getElementById('pagination-info').innerText = `Showing ${content.length} of ${totalElements} records`;
+          document.getElementById('prev-btn').disabled = page === 0;
+          document.getElementById('next-btn').disabled = page >= pages - 1 || pages === 0;
+
+          if (content.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No attendance records found.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = content.map(a => `
+            <tr>
+              <td>
+                <strong>${a.employeeName}</strong>
+                <div style="font-size:0.75rem; color:var(--text-muted);">${a.employeeCode}</div>
+              </td>
+              <td>${Utils.formatDate(a.attendanceDate)}</td>
+              <td>${Utils.formatTime(a.checkInTime)}</td>
+              <td>${Utils.formatTime(a.checkOutTime)}</td>
+              <td>${a.totalWorkingHours ? a.totalWorkingHours.toFixed(1) + ' hrs' : '-'}</td>
+              <td>${a.overtimeMinutes ? (a.overtimeMinutes / 60).toFixed(1) + ' hrs' : '0 hrs'}</td>
+              <td>${Utils.getStatusBadge(a.status)}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function changePage(delta) {
+      currentPage += delta;
+      loadAttendance();
+    }
+
+    loadStatus();
+    loadAttendance();
+  </script>
+</body>
+</html>

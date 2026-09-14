@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports & Analytics – HRMS Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebar-mount"></div>
+
+    <div class="main-wrapper">
+      <div id="header-mount"></div>
+
+      <main class="content-body">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Organization Analytics & Reports</h3>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Workforce headcount, attendance metrics, and department breakdowns</p>
+            </div>
+          </div>
+
+          <!-- Headcount Overview Stats -->
+          <div class="stat-grid" id="stats-grid">
+            <div class="stat-card"><div class="stat-icon icon-indigo">👥</div><div class="stat-details"><span class="stat-value" id="rep-total">0</span><span class="stat-label">Total Headcount</span></div></div>
+            <div class="stat-card"><div class="stat-icon icon-emerald">⚡</div><div class="stat-details"><span class="stat-value" id="rep-active">0</span><span class="stat-label">Active Employees</span></div></div>
+            <div class="stat-card"><div class="stat-icon icon-amber">🌱</div><div class="stat-details"><span class="stat-value" id="rep-joiners">0</span><span class="stat-label">New Joiners (This Month)</span></div></div>
+            <div class="stat-card"><div class="stat-icon icon-cyan">🏢</div><div class="stat-details"><span class="stat-value" id="rep-depts">0</span><span class="stat-label">Departments</span></div></div>
+          </div>
+
+          <!-- Department Headcount Distribution Table -->
+          <h4 style="font-size:1.05rem; font-weight:700; margin:28px 0 16px;">Department Headcount Breakdown</h4>
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Department Code</th>
+                  <th>Department Name</th>
+                  <th>Total Active Employees</th>
+                  <th>Headcount Share</th>
+                </tr>
+              </thead>
+              <tbody id="dept-dist-tbody">
+                <tr><td colspan="4" style="text-align:center;">Loading department distribution...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    Utils.initLayout('reports', 'Reports & Analytics');
+
+    async function loadReports() {
+      try {
+        const statsRes = await API.get('/reports/dashboard-stats');
+        let total = 0;
+        if (statsRes && statsRes.data) {
+          const d = statsRes.data;
+          total = d.totalEmployees || 0;
+          document.getElementById('rep-total').innerText = d.totalEmployees;
+          document.getElementById('rep-active').innerText = d.activeEmployees;
+          document.getElementById('rep-joiners').innerText = d.newEmployeesThisMonth;
+          document.getElementById('rep-depts').innerText = d.totalDepartments;
+        }
+
+        const distRes = await API.get('/reports/department-distribution');
+        const tbody = document.getElementById('dept-dist-tbody');
+        if (distRes && distRes.data && distRes.data.length > 0) {
+          tbody.innerHTML = distRes.data.map(d => {
+            const pct = total > 0 ? ((d.employeeCount / total) * 100).toFixed(1) : 0;
+            return `
+              <tr>
+                <td><strong>${d.deptCode}</strong></td>
+                <td>${d.departmentName}</td>
+                <td><strong>${d.employeeCount}</strong></td>
+                <td>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="flex:1; height:8px; background:var(--bg-main); border-radius:4px; overflow:hidden;">
+                      <div style="width:${pct}%; height:100%; background:var(--primary);"></div>
+                    </div>
+                    <span style="font-size:0.8rem; font-weight:600;">${pct}%</span>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No data available.</td></tr>`;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadReports();
+  </script>
+</body>
+</html>

@@ -1,7 +1,13 @@
+**/target/
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 ### STS ###
 .apt_generated
@@ -13,10 +19,11 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
+out/
 
 ### NetBeans ###
 /nbproject/private/
@@ -31,5 +38,8 @@ target/
 
 ### Uploads & Storage ###
 uploads/
+**/uploads/
 *.log
 .env
+.DS_Store
+Thumbs.db

@@ -64,8 +64,19 @@ public class EmployeeController {
         return ResponseEntity.ok(CommonDTOs.ApiResponse.success(pageResponse));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<CommonDTOs.ApiResponse<EmployeeDTOs.Response>> getMyProfile(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        try {
+            Employee emp = employeeService.getEmployeeByUserId(principal.getId());
+            return ResponseEntity.ok(CommonDTOs.ApiResponse.success(employeeService.toResponse(emp)));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('employee:read')")
+    @PreAuthorize("hasAuthority('employee:read') or hasAuthority('employee:read_all')")
     public ResponseEntity<CommonDTOs.ApiResponse<EmployeeDTOs.Response>> getEmployee(
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal principal) {
@@ -106,16 +117,5 @@ public class EmployeeController {
             @PathVariable Long id, @AuthenticationPrincipal UserPrincipal principal) {
         employeeService.toggleActive(id, false, principal.getId(), principal.getEmail());
         return ResponseEntity.ok(CommonDTOs.ApiResponse.success("Employee deactivated", null));
-    }
-
-    @GetMapping("/me")
-    public ResponseEntity<CommonDTOs.ApiResponse<EmployeeDTOs.Response>> getMyProfile(
-            @AuthenticationPrincipal UserPrincipal principal) {
-        try {
-            Employee emp = employeeService.getEmployeeByUserId(principal.getId());
-            return ResponseEntity.ok(CommonDTOs.ApiResponse.success(employeeService.toResponse(emp)));
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
     }
 }

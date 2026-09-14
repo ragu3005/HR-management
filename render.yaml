@@ -1,49 +1,23 @@
 services:
-  # 1. Spring Boot Backend Web Service
+  # HRMS Pro Full-Stack Web Service (Spring Boot + Built-in UI)
   - type: web
-    name: hrms-pro-backend
-    env: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    name: hrms-pro
+    runtime: docker
     plan: free
-    region: oregon
-    healthCheckPath: /api/organization
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
     envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: prod
+      - key: PORT
+        value: 8080
       - key: DB_URL
-        fromDatabase:
-          name: hrms-pro-db
-          property: connectionString
+        sync: false
+        # Example for Aiven / PlanetScale / Clever Cloud / Railway MySQL:
+        # jdbc:mysql://<host>:<port>/<dbname>?useSSL=true&serverTimezone=UTC
       - key: DB_USERNAME
-        fromDatabase:
-          name: hrms-pro-db
-          property: user
+        sync: false
       - key: DB_PASSWORD
-        fromDatabase:
-          name: hrms-pro-db
-          property: password
+        sync: false
       - key: JWT_SECRET
         generateValue: true
-      - key: CORS_ORIGINS
-        value: "*"
-
-  # 2. Frontend Static Site
-  - type: web
-    name: hrms-pro-frontend
-    env: static
-    staticPublishPath: ./frontend
-    plan: free
-    region: oregon
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-
-databases:
-  # MySQL Database on Render
-  - name: hrms-pro-db
-    databaseName: hrms_db
-    user: hrms_user
-    plan: free
-    region: oregon
+      - key: FILE_UPLOAD_DIR
+        value: /app/uploads
