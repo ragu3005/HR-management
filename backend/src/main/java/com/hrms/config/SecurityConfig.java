@@ -67,7 +67,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Static files for serving frontend
-                .requestMatchers("/", "/index.html", "/**.html", "/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers("/", "/index.html", "/**.html", "/css/**", "/js/**", "/images/**", "/assets/**", "/favicon.ico", "/uploads/**").permitAll()
+
                 // All other API endpoints require authentication
                 .anyRequest().authenticated()
             )
