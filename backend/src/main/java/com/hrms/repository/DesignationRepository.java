@@ -8,6 +8,8 @@ import java.util.List;
 @Repository
 public interface DesignationRepository extends JpaRepository<Designation, Long> {
     boolean existsByName(String name);
+
     List<Designation> findByIsActive(Boolean isActive);
+
     List<Designation> findByDepartmentId(Long departmentId);
 }
