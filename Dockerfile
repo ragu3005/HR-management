@@ -26,5 +26,6 @@ COPY --from=build /app/backend/target/*.jar app.jar
 ENV PORT=8080
 EXPOSE 8080
 
-# Run Spring Boot
-ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT} -jar app.jar"]
+# Run Spring Boot with optimized memory for Render 512MB Free Tier
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -Xmx350m -Xms128m -Xss512k -Dserver.port=${PORT} -jar app.jar"]
+
